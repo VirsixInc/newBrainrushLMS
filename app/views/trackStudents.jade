@@ -1,0 +1,22 @@
+extends layout
+
+block content
+
+  include navbar
+  #studentContainer(style="position:relative")
+    table
+      thead
+        tr
+          th(style='width:40px') Name
+          th(style='width:100px') Teacher
+          //- for(var i =0;i<assignments.length;i++)
+          th=assignments
+      tbody
+      - for(var i =0; i<students.length;i++)
+        tr
+          td=students[i].username
+          td=students[i].teacher
+          //-for(var j = 1; j<students[i].assignments.length;j+2)
+          td=students[i].assignments
+
+block scripts
