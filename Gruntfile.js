@@ -171,6 +171,15 @@ module.exports = function (grunt) {
         },
         src: 'less/theme.less',
         dest: 'dist/css/<%= pkg.name %>-theme.css'
+      },
+      compileBR: {
+        options: {
+          strictMath: true,
+          sourceMap: true,
+          optimization: 2
+        },
+        src: 'less/brainrush.less',
+        dest: 'dist/css/brainrush.css'
       }
     },
 
@@ -454,7 +463,7 @@ module.exports = function (grunt) {
   grunt.registerTask('dist-js', ['concat', 'uglify:core', 'commonjs']);
 
   // CSS distribution task.
-  grunt.registerTask('less-compile', ['less:compileCore', 'less:compileTheme']);
+  grunt.registerTask('less-compile', ['less:compileCore', 'less:compileTheme','less:compileBR']);
   grunt.registerTask('dist-css', ['less-compile', 'autoprefixer:core', 'autoprefixer:theme', 'usebanner', 'csscomb:dist', 'cssmin:minifyCore', 'cssmin:minifyTheme']);
 
   // Full distribution task.

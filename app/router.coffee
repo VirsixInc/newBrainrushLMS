@@ -10,10 +10,13 @@ module.exports = (app) ->
   # main login page //
 
   app.get '/', (req, res) ->
+
     # check if the user's credentials are saved in a cookie //
     if req.cookies.user == undefined or req.cookies.pass == undefined
+      console.log("USER OR PASSWORD IS UNDEFINED")
       res.render 'login', title: 'Hello - Please Login To Your Account'
     else
+      console.log("USER AND PASSWORD IS DEFINED")
       # attempt automatic login //
       AM.autoLogin req.cookies.user, req.cookies.pass, (o) ->
         if o != null
@@ -23,11 +26,14 @@ module.exports = (app) ->
           res.render 'login', title: 'Hello - Please Login To Your Account'
         return
     return
+
   app.post '/', (req, res) ->
     AM.manualLogin req.param('user'), req.param('pass'), (e, o) ->
       if !o
+        console.log("O IS FALSE")
         res.send e, 400
       else
+        console.log("O IS TRUE")
         req.session.user = o
         if req.param('remember-me') == 'true'
           res.cookie 'user', o.user, maxAge: 900000
@@ -46,6 +52,15 @@ module.exports = (app) ->
         countries: CT
         udata: req.session.user
     return
+
+  app.get '/test', (req, res) ->
+    dbHandle.pullStudents("Mary", (results)->
+      if results.students != undefined
+        res.render 'test',
+          title: 'All students'
+          students: results.students
+          assignments: results.assignments
+    )
 
   app.get '/home/addAssignment', (req, res) ->
     if req.session.user == null
