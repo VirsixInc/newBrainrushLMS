@@ -12,6 +12,9 @@ supportedTemplates = [
   "buckets",
   "sequences"
   ]
+
+currentAssignments = []
+
 studentCollection = "studentCollection"
 
 genericContentSchema = mongoose.Schema({
@@ -23,12 +26,25 @@ studentSchema = mongoose.Schema({
   password: String,
   teacher: String,
   assignments: []
+  mastery: []
 })
 
 mongoose.connect('mongodb://localhost:27017/brainrushcontent')
-db = mongoose.connection
-db.on('error', console.error.bind(console, 'connect error'))
-db.once('open',(callback)->
+mongConnect = mongoose.connection
+mongConnect.on('error', console.error.bind(console, 'connect error'))
+mongConnect.on('open',(callback)->
+  mongConnect.db.collections((err,names)->
+    for thisd in names
+      for supported in supportedTemplates
+        if thisd.s.name.indexOf(supported) > -1
+          currentAssignments.push(thisd.s.name)
+          break
+  )
+  ###
+  mongConnect.db.collectionNames((err, names)->
+    console.log(names)
+  )
+  ###
   console.log("DATABASE OPENED")
 )
 
@@ -61,6 +77,7 @@ exports.uploadNewAssignment = (filePath, callback)->
   fileName = path.basename(filePath)
   csvToDatabase(parsedCSV, fileName)
   updateStudentAssignments(fileName)
+  currentAssignments.push(fileName)
   callback "Uploaded!"
 
 
@@ -103,6 +120,7 @@ addStudentsFromCSV = (parsedStudentCSV, callback)->
         password:student[1],
         teacher:student[2],
         assignments:[]
+        mastery:[]
       })
       studentModel.count({
         username:currStudent.username
@@ -136,6 +154,7 @@ exports.addStudent = (teacher, username, password, callback) ->
           password:password,
           teacher:teacher,
           assignments:[]
+          mastery:[]
         })
         dataToWrite.save()
         callback "account created", dataToWrite
@@ -151,7 +170,7 @@ exports.pullStudents = (teacherName, callback)->
     if err
       callback err
     else
-      callback {students:results, assignments:"assignments"}
+      callback results
     return
   )
   return

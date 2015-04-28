@@ -53,15 +53,6 @@ module.exports = (app) ->
         udata: req.session.user
     return
 
-  app.get '/test', (req, res) ->
-    dbHandle.pullStudents("Mary", (results)->
-      if results.students != undefined
-        res.render 'test',
-          title: 'All students'
-          students: results.students
-          assignments: results.assignments
-    )
-
   app.get '/home/addAssignment', (req, res) ->
     if req.session.user == null
       res.redirect '/'
@@ -86,9 +77,10 @@ module.exports = (app) ->
   app.get '/home/listStudents', (req, res) ->
     dbHandle.pullStudents("Mary", (results)->
       if results.students != undefined
+        console.log(results.assignments)
         res.render 'trackStudents',
           title: 'All students'
-          students: results.students
+          students: results
           assignments: results.assignments
       else
         res.write '<p> no students </p>'
