@@ -76,11 +76,11 @@ module.exports = (app) ->
 
   app.get '/home/listStudents', (req, res) ->
     dbHandle.pullStudents("Mary", (results)->
-      if results.students != undefined
-        console.log(results.assignments)
+      console.log(results)
+      if results != undefined
         res.render 'trackStudents',
           title: 'All students'
-          students: results
+          students: results.students
           assignments: results.assignments
       else
         res.write '<p> no students </p>'
@@ -211,6 +211,15 @@ module.exports = (app) ->
     dbHandle.sendReq req, (cb) ->
       return
     return
+
+  app.get '/setAssignmentMastery?*', (req, res)->
+    dbHandle.setAssignmentMastery req.query.assignmentName, req.query.student, req.query.mastery, (results)->
+      res.send(results)
+
+  app.get '/addAssignmentToStudents?*', (req, res)->
+    dbHandle.addAssignmentToAllStudents req.query.assignmentName, (results)->
+      res.send(results)
+
   app.get '/addStudent?*', (req, res)->
     console.log(req.query)
     dbHandle.addStudent req.query.teacher, req.query.username, req.query.password, (results)->

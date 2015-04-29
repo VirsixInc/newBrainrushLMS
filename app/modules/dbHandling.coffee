@@ -3,6 +3,7 @@ assert = require('assert')
 mongoose = require('mongoose')
 path = require('path')
 multer = require('multer')
+_ = require('underscore')
 
 dbPort = 27017
 dbHost = 'localhost'
@@ -26,7 +27,6 @@ studentSchema = mongoose.Schema({
   password: String,
   teacher: String,
   assignments: []
-  mastery: []
 })
 
 mongoose.connect('mongodb://localhost:27017/brainrushcontent')
@@ -77,7 +77,10 @@ exports.uploadNewAssignment = (filePath, callback)->
   fileName = path.basename(filePath)
   csvToDatabase(parsedCSV, fileName)
   updateStudentAssignments(fileName)
-  currentAssignments.push(fileName)
+  for supported in supportedTemplates
+    if fileName.indexOf(supported) > -1
+      currentAssignments.push(fileName)
+      break
   callback "Uploaded!"
 
 
@@ -120,7 +123,6 @@ addStudentsFromCSV = (parsedStudentCSV, callback)->
         password:student[1],
         teacher:student[2],
         assignments:[]
-        mastery:[]
       })
       studentModel.count({
         username:currStudent.username
@@ -154,7 +156,6 @@ exports.addStudent = (teacher, username, password, callback) ->
           password:password,
           teacher:teacher,
           assignments:[]
-          mastery:[]
         })
         dataToWrite.save()
         callback "account created", dataToWrite
@@ -170,10 +171,65 @@ exports.pullStudents = (teacherName, callback)->
     if err
       callback err
     else
-      callback results
+      callback {students:results, assignments:currentAssignments}
     return
   )
   return
+
+exports.addAssignmentToStudent = (studentName, assignmentName,callback)->
+
+
+exports.setAssignmentMastery = (assignmentName, student, mastery, callback)->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  if currentAssignments.indexOf(assignmentName) > -1
+    studentModel.findOne({username:student},(err, doc)->
+      elementPos = doc.assignments.map((x) ->
+        x.assignmentName
+      ).indexOf(assignmentName)
+      doc.assignments[elementPos].mastery = mastery
+      doc.markModified('assignments')
+      doc.save()
+      callback doc
+    )
+
+exports.addAssignmentToAllStudents = (assignmentName, callback)->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  if currentAssignments.indexOf(assignmentName) > -1
+    studentModel.find({},(err, docs)->
+      docs.forEach((doc)->
+        doesntExist = true
+        for allAssigns in doc.assignments
+          if allAssigns.assignmentName == assignmentName
+            doesntExist = false
+            break
+        if doesntExist == true
+          studentModel.findByIdAndUpdate(doc.id,
+            {$push:{assignments:{assignmentName:assignmentName, mastery:0}}},
+            {safe:true, upsert:true},(err, model) ->
+              if err
+                console.log err
+              else
+                console.log "LOGGING MODEL"
+                console.log model
+          )
+        else
+          console.log "exists!"
+        ###
+        compare = (a, b) ->
+          if a.assignment < b.assignment
+            return -1
+          if a.assignment > b.assignment
+            return 1
+          0
+        doc.assignments.sort compare
+        ###
+      )
+      callback ("Assignment added:" + assignmentName)
+    )
+  else
+    callback "Assignment does not exist"
+
+
 
 exports.pullStudentAssignments = (username, password, callback) ->
   studentModel = mongoose.model(studentCollection, studentSchema)
