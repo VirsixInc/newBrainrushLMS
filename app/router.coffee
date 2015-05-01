@@ -7,7 +7,82 @@ multer = require('multer')
 fs = require('fs')
 
 module.exports = (app) ->
-  # main login page //
+
+#CLIENT SIDE
+#
+#
+#
+  app.get '/client/pullData?*', (req, res)->
+    dbHandle.pullStudentAssignments req.query.username, req.query.password, (assignmentList)->
+      res.send(assignmentList)
+    return
+
+  app.get '/client/pullAssignment?*', (req, res)->
+    dbHandle.pullAssignment req.query.assign, (assignToReturn)->
+      res.send(assignToReturn)
+    return
+
+  app.get '/client/logStudentIn?*', (req, res)->
+    dbHandle.logStudentIn req.query.username, req.query.password, (results)->
+      res.send(results)
+    return
+
+  app.get '/client/setAssignmentMastery?*', (req, res)->
+    dbHandle.setAssignmentMastery req.query.assignmentName, req.query.student, req.query.mastery, (results)->
+      res.send(results)
+
+#FRONT END WEB
+#
+#
+#
+
+  app.get '/home/addAssignmentToStudents?*', (req, res)->
+    if req.session.user == undefined
+      res.redirect '/'
+    else
+      dbHandle.addAssignmentToAllStudents req.query.assignmentName, (results)->
+        res.send(results)
+
+  app.get '/home/addStudent?*', (req, res)->
+    if req.session.user == undefined
+      res.redirect '/'
+    else
+      dbHandle.addStudent req.query.teacher, req.query.username, req.query.password, (results)->
+        res.send(results)
+
+  app.get '/home/addAssignment', (req, res) ->
+    if req.session.user == undefined
+      res.redirect '/'
+    else
+      res.render 'assignments'
+
+  app.get '/home/listStudents', (req, res) ->
+    dbHandle.pullStudents("Mary", (results)->
+      if results != undefined
+        res.render 'trackStudents',
+          title: 'All students'
+          students: results.students
+          assignments: results.assignments
+      else
+        res.write '<p> no students </p>'
+      return
+    )
+    return
+
+  app.post '/api/upload',(req,res)->
+    fileName = req.files.csvToUpload.name
+    filePath = req.files.csvToUpload.path
+    fs.readFile(filePath,"utf8", (err, data)->
+      newPath = __dirname + "/uploads/" + fileName
+      fs.writeFile(newPath, data, (err)->
+        if err
+        else
+          dbHandle.uploadNewAssignment(newPath, (results)->
+            console.log(results)
+          )
+      )
+    )
+    res.redirect '/home/addAssignment'
 
   app.get '/', (req, res) ->
 
@@ -53,40 +128,6 @@ module.exports = (app) ->
         udata: req.session.user
     return
 
-  app.get '/home/addAssignment', (req, res) ->
-    if req.session.user == null
-      res.redirect '/'
-    else
-      res.render 'assignments'
-
-  app.post '/api/upload',(req,res)->
-    fileName = req.files.csvToUpload.name
-    filePath = req.files.csvToUpload.path
-    fs.readFile(filePath,"utf8", (err, data)->
-      newPath = __dirname + "/uploads/" + fileName
-      fs.writeFile(newPath, data, (err)->
-        if err
-        else
-          dbHandle.uploadNewAssignment(newPath, (results)->
-            console.log(results)
-          )
-      )
-    )
-    res.redirect '/home/addAssignment'
-
-  app.get '/home/listStudents', (req, res) ->
-    dbHandle.pullStudents("Mary", (results)->
-      console.log(results)
-      if results != undefined
-        res.render 'trackStudents',
-          title: 'All students'
-          students: results.students
-          assignments: results.assignments
-      else
-        res.write '<p> no students </p>'
-      return
-    )
-    return
 
   app.post '/home', (req, res) ->
     if req.param('user') != undefined
@@ -155,6 +196,7 @@ module.exports = (app) ->
         res.send 'email-not-found', 400
       return
     return
+
   app.get '/reset-password', (req, res) ->
     email = req.query['e']
     passH = req.query['p']
@@ -169,6 +211,7 @@ module.exports = (app) ->
         res.render 'reset', title: 'Reset Password'
       return
     return
+
   app.post '/reset-password', (req, res) ->
     nPass = req.param('pass')
     # retrieve the user's email from the session to lookup their account and reset password //
@@ -190,6 +233,7 @@ module.exports = (app) ->
         accts: accounts
       return
     return
+
   app.post '/delete', (req, res) ->
     AM.deleteAccount req.body.id, (e, obj) ->
       if !e
@@ -206,28 +250,6 @@ module.exports = (app) ->
     AM.delAllRecords ->
       res.redirect '/print'
       return
-    return
-  app.post '/updatestudent', (req, res) ->
-    dbHandle.sendReq req, (cb) ->
-      return
-    return
-
-  app.get '/setAssignmentMastery?*', (req, res)->
-    dbHandle.setAssignmentMastery req.query.assignmentName, req.query.student, req.query.mastery, (results)->
-      res.send(results)
-
-  app.get '/addAssignmentToStudents?*', (req, res)->
-    dbHandle.addAssignmentToAllStudents req.query.assignmentName, (results)->
-      res.send(results)
-
-  app.get '/addStudent?*', (req, res)->
-    console.log(req.query)
-    dbHandle.addStudent req.query.teacher, req.query.username, req.query.password, (results)->
-      res.send(results)
-
-  app.get '/pullData?*', (req, res)->
-    dbHandle.pullStudentAssignments req.query.username, req.query.password, (assignmentList)->
-      res.send(assignmentList)
     return
   app.get '*', (req, res) ->
     res.render '404', title: 'Page Not Found'

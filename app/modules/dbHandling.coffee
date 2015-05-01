@@ -38,13 +38,9 @@ mongConnect.on('open',(callback)->
       for supported in supportedTemplates
         if thisd.s.name.indexOf(supported) > -1
           currentAssignments.push(thisd.s.name)
+          currentAssignments.sort()
           break
   )
-  ###
-  mongConnect.db.collectionNames((err, names)->
-    console.log(names)
-  )
-  ###
   console.log("DATABASE OPENED")
 )
 
@@ -81,6 +77,7 @@ exports.uploadNewAssignment = (filePath, callback)->
     if fileName.indexOf(supported) > -1
       currentAssignments.push(fileName)
       break
+  currentAssignment.sort()
   callback "Uploaded!"
 
 
@@ -167,7 +164,9 @@ exports.addStudent = (teacher, username, password, callback) ->
 
 exports.pullStudents = (teacherName, callback)->
   studentModel = mongoose.model(studentCollection, studentSchema)
+  console.log(currentAssignments)
   studentModel.find({teacher:teacherName}, '-_id -__v -password', (err, results)->
+    console.log(results[0].assignments)
     if err
       callback err
     else
@@ -175,6 +174,15 @@ exports.pullStudents = (teacherName, callback)->
     return
   )
   return
+
+exports.logStudentIn = (studentName, password, callback)->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  studentModel.findOne({username:studentName, password:password},(err, doc)->
+    if doc
+      callback true
+    else
+      callback false
+  )
 
 exports.addAssignmentToStudent = (studentName, assignmentName,callback)->
 
@@ -191,6 +199,18 @@ exports.setAssignmentMastery = (assignmentName, student, mastery, callback)->
       doc.save()
       callback doc
     )
+
+exports.pullAssignmentMastery = (assignmentName, student, callback)->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  if currentAssignments.indexOf(assignmentName) > -1
+    studentModel.findOne({username:student},(err, doc)->
+      elementPos = doc.assignments.map((x) ->
+        x.assignmentName
+      ).indexOf(assignmentName)
+      doc.assignments[elementPos].mastery = mastery
+      callback doc.assignments[elementPos].mastery
+    )
+
 
 exports.addAssignmentToAllStudents = (assignmentName, callback)->
   studentModel = mongoose.model(studentCollection, studentSchema)
@@ -214,16 +234,8 @@ exports.addAssignmentToAllStudents = (assignmentName, callback)->
           )
         else
           console.log "exists!"
-        ###
-        compare = (a, b) ->
-          if a.assignment < b.assignment
-            return -1
-          if a.assignment > b.assignment
-            return 1
-          0
-        doc.assignments.sort compare
-        ###
       )
+      sortAssignments()
       callback ("Assignment added:" + assignmentName)
     )
   else
@@ -234,12 +246,8 @@ exports.addAssignmentToAllStudents = (assignmentName, callback)->
 exports.pullStudentAssignments = (username, password, callback) ->
   studentModel = mongoose.model(studentCollection, studentSchema)
   if(username.length > 1 && password.length > 1)
-    studentModel.find({username:username, password:password}, '-_id -__v', (err, user)->
-      if err
-        callback err
-        return true
-      else
-        callback user[0].assignments
+    studentModel.findOne({username:username},(err, doc)->
+      callback doc.assignments
     )
   else
     callback "username is blank || password is blank"
@@ -247,10 +255,32 @@ exports.pullStudentAssignments = (username, password, callback) ->
   return
 
 exports.pullAssignment = (collectionName, callback) ->
-  readFromDatabase(collectionName, cardsSchema, (dataToReturn)->
+  sortAssignments()
+  readFromDatabase(collectionName, genericContentSchema, (dataToReturn)->
     callback dataToReturn
   )
   return
+
+sortAssignments = ()->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  studentModel.find({},(err, docs)->
+    if !err
+      for doc in docs
+        doc.assignments = doc.assignments.sort(compare)
+        currentAssignments = currentAssignments.sort()
+        doc.markModified('assignments')
+        doc.save()
+      return true
+    else
+      return err
+  )
+
+compare = (a, b) ->
+  if a.assignmentName < b.assignmentName
+    return -1
+  if a.assignmentName > b.assignmentName
+    return 1
+  0
 
 readFromDatabase = (collectionName, schema, callback)->
   modelToRead = mongoose.model(collectionName, schema, collectionName)
