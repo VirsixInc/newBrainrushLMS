@@ -4,10 +4,12 @@ block content
 
   include navbar
   #studentContainer(style="position:relative")
+
     table.table.table-bordered
       thead
         tr
-          th(style='width:40px') Name
+          th(style='width:40px') Username
+          th(style='width:40px') Password
           th(style='width:100px') Teacher
           - for(var i =0;i<assignments.length;i++)
             th=assignments[i]
@@ -15,6 +17,7 @@ block content
       - for(var i =0; i<students.length;i++)
         tr
           td=students[i].username
+          td=students[i].password
           td=students[i].teacher
           - for(var j = 0;j<students[i].assignments.length;j++)
             td
@@ -29,5 +32,6 @@ block content
                     'height':50
                     });
                 });
+              p=students[i].assignments[j].timeSpentOnAssign
 
 block scripts

@@ -12,6 +12,7 @@ module.exports = (app) ->
 #
 #
 #
+
   app.get '/client/pullData?*', (req, res)->
     dbHandle.pullStudentAssignments req.query.username, req.query.password, (assignmentList)->
       res.send(assignmentList)
@@ -22,6 +23,11 @@ module.exports = (app) ->
       res.send(assignToReturn)
     return
 
+  app.get '/client/pullAssignmentInfo?*', (req, res)->
+    dbHandle.pullAssignmentInfo req.query.assign, req.query.username, req.query.password (assignToReturn)->
+      res.send(assignToReturn)
+    return
+
   app.get '/client/logStudentIn?*', (req, res)->
     dbHandle.logStudentIn req.query.username, req.query.password, (results)->
       res.send(results)
@@ -29,6 +35,10 @@ module.exports = (app) ->
 
   app.get '/client/setAssignmentMastery?*', (req, res)->
     dbHandle.setAssignmentMastery req.query.assignmentName, req.query.student, req.query.mastery, (results)->
+      res.send(results)
+
+  app.get '/client/setAssignmentTime?*', (req, res)->
+    dbHandle.setAssignmentTime req.query.assignmentName, req.query.student, req.query.time, (results)->
       res.send(results)
 
 #FRONT END WEB
@@ -51,13 +61,10 @@ module.exports = (app) ->
         res.send(results)
 
   app.get '/home/addAssignment', (req, res) ->
-    if req.session.user == undefined
-      res.redirect '/'
-    else
-      res.render 'assignments'
+    res.render 'assignments'
 
   app.get '/home/listStudents', (req, res) ->
-    dbHandle.pullStudents("Mary", (results)->
+    dbHandle.pullStudents("Kathy", (results)->
       if results != undefined
         res.render 'trackStudents',
           title: 'All students'
@@ -74,10 +81,11 @@ module.exports = (app) ->
     filePath = req.files.csvToUpload.path
     fs.readFile(filePath,"utf8", (err, data)->
       newPath = __dirname + "/uploads/" + fileName
+      checkFile = fileName.split('.')[1]
       fs.writeFile(newPath, data, (err)->
         if err
         else
-          dbHandle.uploadNewAssignment(newPath, (results)->
+          dbHandle.uploadNewFile(newPath, (results)->
             console.log(results)
           )
       )
@@ -122,10 +130,7 @@ module.exports = (app) ->
       # if user is not logged-in redirect back to login page //
       res.redirect '/'
     else
-      res.render 'index',
-        title: 'Control Panel'
-        countries: CT
-        udata: req.session.user
+      res.redirect '/home/listStudents'
     return
 
 

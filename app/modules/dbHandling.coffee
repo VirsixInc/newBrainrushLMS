@@ -29,6 +29,10 @@ studentSchema = mongoose.Schema({
   assignments: []
 })
 
+assignInfoSchema = mongoose.Schema({
+  subject: String
+})
+
 mongoose.connect('mongodb://localhost:27017/brainrushcontent')
 mongConnect = mongoose.connection
 mongConnect.on('error', console.error.bind(console, 'connect error'))
@@ -68,18 +72,55 @@ writeDatabaseContent = (arrayToWrite, fileName)->
         return false
       )
 
-exports.uploadNewAssignment = (filePath, callback)->
-  parsedCSV = parseCSV(filePath)
+###
+exports.uploadAssignInfo = (filePath, callback)->
   fileName = path.basename(filePath)
-  csvToDatabase(parsedCSV, fileName)
-  updateStudentAssignments(fileName)
-  for supported in supportedTemplates
-    if fileName.indexOf(supported) > -1
-      currentAssignments.push(fileName)
-      break
-  currentAssignment.sort()
-  callback "Uploaded!"
+  fileName = fileName.split('.')[0]
+  infoModel = mongoose.model(fileName, assignInfoSchema)
+  mongConnect.db.collections((err,names)->
+    for thisd in names
+      if fileName == thisd.s.name
+        parsedCSV = parseCSV(filePath)
+        currInfoModel = new infoModel({
+          subject:
+        })
+        contentModel.count({
+          indiArg:currContentModel.indiArg
+        }, (err, count)->
+          if count < 1 && currContentModel.indiArg != undefined
+            new contentModel(currContentModel).save()
+            return true
+          else
+            console.log("Exists or is undefined")
+            return true
+          return false
+        )
+  )
+###
 
+exports.uploadNewFile = (filePath, callback)->
+  fileName = path.basename(filePath)
+  if filePath.indexOf('csv') > -1
+    parsedCSV = parseCSV(filePath)
+    csvToDatabase(parsedCSV, fileName)
+    for supported in supportedTemplates
+      if fileName.indexOf(supported) > -1
+        currentAssignments.push(fileName)
+        break
+    currentAssignments.sort()
+  else if filePath.indexOf('images') > -1
+    assignExists = false
+    for currentAssign in currentAssignments
+      if filePath.indexOf(currentAssign) > -1
+        assignExists = true
+    if !assignExists
+      fs.unlink(filePath,(err)->
+        if err
+          console.log(err)
+        else
+          console.log("FILE DELETED")
+      )
+  callback "Uploaded!"
 
 #UTILITY FUNCTIONS
 #
@@ -118,7 +159,7 @@ addStudentsFromCSV = (parsedStudentCSV, callback)->
       currStudent = new studentModel({
         username:student[0],
         password:student[1],
-        teacher:student[2],
+        teacher:"Kathy",#student[2],
         assignments:[]
       })
       studentModel.count({
@@ -132,15 +173,6 @@ addStudentsFromCSV = (parsedStudentCSV, callback)->
           return true
         return false
       )
-
-updateStudentAssignments = (assignmentName, callback)->
-  studentModel = mongoose.model(studentCollection, studentSchema)
-  studentModel.update({},{$push: {assignments:[assignmentName, 0]}}, (err, num)->
-    if err
-      console.log(err)
-    else
-      console.log(num)
-  )
 
 
 exports.addStudent = (teacher, username, password, callback) ->
@@ -165,8 +197,8 @@ exports.addStudent = (teacher, username, password, callback) ->
 exports.pullStudents = (teacherName, callback)->
   studentModel = mongoose.model(studentCollection, studentSchema)
   console.log(currentAssignments)
-  studentModel.find({teacher:teacherName}, '-_id -__v -password', (err, results)->
-    console.log(results[0].assignments)
+  teacherName = "Kathy"
+  studentModel.find({teacher:teacherName}, '-_id -__v').sort([['username', 'ascending']]).exec( (err, results)->
     if err
       callback err
     else
@@ -200,6 +232,22 @@ exports.setAssignmentMastery = (assignmentName, student, mastery, callback)->
       callback doc
     )
 
+exports.setAssignmentTime = (assignmentName, student, time, callback)->
+  studentModel = mongoose.model(studentCollection, studentSchema)
+  if currentAssignments.indexOf(assignmentName) > -1
+    studentModel.findOne({username:student},(err, doc)->
+      elementPos = doc.assignments.map((x) ->
+        x.assignmentName
+      ).indexOf(assignmentName)
+      doc.assignments[elementPos].timeSpentOnAssign = time
+      doc.markModified('assignments')
+      doc.save()
+      callback doc
+    )
+
+exports.pullAssignmentInfo = (assignmentName, username, password, callback)->
+  callback "completed"
+
 exports.pullAssignmentMastery = (assignmentName, student, callback)->
   studentModel = mongoose.model(studentCollection, studentSchema)
   if currentAssignments.indexOf(assignmentName) > -1
@@ -211,6 +259,10 @@ exports.pullAssignmentMastery = (assignmentName, student, callback)->
       callback doc.assignments[elementPos].mastery
     )
 
+formatSeconds = (seconds) ->
+  date = new Date(1970, 0, 1)
+  date.setSeconds seconds
+  date.toTimeString().replace /.*(\d{2}:\d{2}:\d{2}).*/, '$1'
 
 exports.addAssignmentToAllStudents = (assignmentName, callback)->
   studentModel = mongoose.model(studentCollection, studentSchema)
@@ -224,7 +276,7 @@ exports.addAssignmentToAllStudents = (assignmentName, callback)->
             break
         if doesntExist == true
           studentModel.findByIdAndUpdate(doc.id,
-            {$push:{assignments:{assignmentName:assignmentName, mastery:0}}},
+            {$push:{assignments:{assignmentName:assignmentName, mastery:0, timeSpentOnAssign:formatSeconds(0)}}},
             {safe:true, upsert:true},(err, model) ->
               if err
                 console.log err
