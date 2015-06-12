@@ -118,6 +118,7 @@ exports.uploadNewFile = (filePath, callback)->
           if err
             console.log(err)
         )
+
         break
     if !assignExists
       fs.unlink(filePath,(err)->
@@ -245,7 +246,7 @@ exports.setAssignmentTime = (assignmentName, student, time, callback)->
       elementPos = doc.assignments.map((x) ->
         x.assignmentName
       ).indexOf(assignmentName)
-      doc.assignments[elementPos].timeSpentOnAssign = time
+      doc.assignments[elementPos].timeSpentOnAssign = formatSeconds(time)
       doc.markModified('assignments')
       doc.save()
       callback doc
