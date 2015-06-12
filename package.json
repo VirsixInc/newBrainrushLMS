@@ -24,7 +24,7 @@
     "url": "https://github.com/twbs/bootstrap.git"
   },
   "private": true,
-  "dependencies":{
+  "dependencies": {
     "body-parser": "^1.12.3",
     "busboy": "^0.2.9",
     "emailjs": "0.3.3",
@@ -37,6 +37,7 @@
     "multer": "^0.x",
     "ncp": "^2.0.0",
     "path": "^0.11.14",
+    "request": "^2.57.0",
     "stylus": "0.31.0",
     "url": "^0.10.3",
     "ya-csv": "^0.9.4"

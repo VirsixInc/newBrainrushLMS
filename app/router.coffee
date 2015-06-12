@@ -5,6 +5,7 @@ dbHandle = require('./modules/dbHandling')
 url = require('url')
 multer = require('multer')
 fs = require('fs')
+request = require('request')
 
 module.exports = (app) ->
 
@@ -12,6 +13,10 @@ module.exports = (app) ->
 #
 #
 #
+
+  app.get '/client/images?*', (req,res)->
+    res.download(__dirname + '/images/' + req.query.assignment)
+    return
 
   app.get '/client/pullData?*', (req, res)->
     dbHandle.pullStudentAssignments req.query.username, req.query.password, (assignmentList)->
@@ -50,6 +55,7 @@ module.exports = (app) ->
     if req.session.user == undefined
       res.redirect '/'
     else
+      console
       dbHandle.addAssignmentToAllStudents req.query.assignmentName, (results)->
         res.send(results)
 
@@ -79,9 +85,19 @@ module.exports = (app) ->
   app.post '/api/upload',(req,res)->
     fileName = req.files.csvToUpload.name
     filePath = req.files.csvToUpload.path
+    newPath = __dirname + "/uploads/" + fileName
+    fs.createReadStream(filePath)
+      .pipe(fs.createWriteStream(__dirname + "/uploads/" + fileName))
+      .on('close', ()->
+        dbHandle.uploadNewFile(newPath, (results)->
+          console.log(results)
+        )
+      )
+    ###
     fs.readFile(filePath,"utf8", (err, data)->
       newPath = __dirname + "/uploads/" + fileName
       checkFile = fileName.split('.')[1]
+
       fs.writeFile(newPath, data, (err)->
         if err
         else
@@ -90,6 +106,7 @@ module.exports = (app) ->
           )
       )
     )
+    ###
     res.redirect '/home/addAssignment'
 
   app.get '/', (req, res) ->

@@ -17,6 +17,7 @@ supportedTemplates = [
 currentAssignments = []
 
 studentCollection = "studentCollection"
+imageDir = __dirname + "/../images/"
 
 genericContentSchema = mongoose.Schema({
   indiArg: [],
@@ -113,6 +114,11 @@ exports.uploadNewFile = (filePath, callback)->
     for currentAssign in currentAssignments
       if filePath.indexOf(currentAssign) > -1
         assignExists = true
+        fs.rename(filePath, imageDir + fileName,(err)->
+          if err
+            console.log(err)
+        )
+        break
     if !assignExists
       fs.unlink(filePath,(err)->
         if err
@@ -275,9 +281,16 @@ exports.addAssignmentToAllStudents = (assignmentName, callback)->
             doesntExist = false
             break
         if doesntExist == true
+          allImageFolders = fs.readdirSync(imageDir)
+          hasImages = false
+          for x in allImageFolders
+            console.log(x)
+            if x.indexOf(assignmentName) > -1
+              hasImages = true
+              console.log("HAS IMAGES!!!")
+          console.log(hasImages)
           studentModel.findByIdAndUpdate(doc.id,
-            {$push:{assignments:{assignmentName:assignmentName, mastery:0, timeSpentOnAssign:formatSeconds(0)}}},
-            {safe:true, upsert:true},(err, model) ->
+            {$push:{assignments:{assignmentName:assignmentName, mastery:0, timeSpentOnAssign:formatSeconds(0), hasImages:hasImages}}},(err, model) ->
               if err
                 console.log err
               else
